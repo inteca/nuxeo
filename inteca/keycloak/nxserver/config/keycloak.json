@@ -1,0 +1,9 @@
+{
+  "realm": "UFE",
+  "auth-server-url": "https://calogin-https-2019-r1-itg.apps.okd.inteca.com/auth",
+  "ssl-required": "external",
+  "resource": "Nuxeo",
+  "public-client": true,
+  "use-resource-role-mappings": true,
+  "disable-trust-manager": true
+}
