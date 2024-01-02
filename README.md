@@ -20,6 +20,15 @@ client = new NuxeoClient.Builder()
 
 # Budowanie
 
+Projekt należy budować z Maven niższym niż 3.8.1 (najnowszy do tej pory to chyba 3.6.3) - niektóre repozytoria, z których
+korzysta Nuxeo dalej używają adresów HTTP...
+
+Budować należy z katalogu głównego. Aby zbudować jakiś konkretny moduł, można spróbować użyć komendy
+```
+mvn clean install -DskipTests=true -pl nuxeo-services/login/nuxeo-platform-login-keycloak --also-make
+```
+Chociaż w praktyce i tak chyba budowany jest cały projekt.
+
 Poza typowymi programami potrzebnymi do budowania projektów javowych (Java, Maven, Ant, etc.), do zbudowania tego projektu potrzebne są następujące programy, dostępne z poziomu konsoli:
 - npm (https://www.npmjs.com/)
 - bower (można zainstalować za pomocą npm-a: `npm install -g bower`)
@@ -27,12 +36,14 @@ Poza typowymi programami potrzebnymi do budowania projektów javowych (Java, Mav
 
 W głównym katalogu projektu (zawierającym ten plik README) uruchomić `mvn clean install -DskipTests=true`.  
 Na stosunkowo porządnej maszynie (Ryzen 5500U + 16GB RAM) build trwa nieco ponad 15 minut.  
-Niektóre testy się wywalają - nie wnikałem, dlaczego.
+Niektóre testy się wywalają - nie wnikałem dlaczego.
 
 Zbudowane pliki, które potrzebujemy skopiować:
 - `./nuxeo-services/login/nuxeo-platform-login-keycloak/target/nuxeo-platform-login-keycloak-*.jar`
 
 # Nanoszenie zmian na Nuxeo
+
+Jak się połączyć do naszych serwerów Nuxeo po SSH - opisane na wiki.
 
 `${nuxeo_home}` - zwykle `/opt/nuxeo` albo `/opt/nuxeo/server`
 
