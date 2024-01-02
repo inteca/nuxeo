@@ -1,6 +1,6 @@
 {
   "realm": "UFE",
-  "auth-server-url": "https://calogin-https-2019-r1-itg.apps.okd.inteca.com/auth",
+  "auth-server-url": "https://itg.keycloak.calogin-quarkus.apps.ocp-test.inteca.com/auth",
   "ssl-required": "external",
   "resource": "Nuxeo",
   "public-client": true,
