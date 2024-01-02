@@ -57,23 +57,24 @@ public class KeycloakUserMapper implements UserMapper {
 
     @Override
     public NuxeoPrincipal getOrCreateAndUpdateNuxeoPrincipal(Object userObject, boolean createIfNeeded, boolean update,
-            Map<String, Serializable> params) {
+                                                             Map<String, Serializable> params) {
+        return  Framework.doPrivileged(() -> {
+            KeycloakUserInfo userInfo = (KeycloakUserInfo) userObject;
+            for (String role : userInfo.getRoles()) {
+                findOrCreateGroup(role, userInfo.getUserName());
+            }
 
-        KeycloakUserInfo userInfo = (KeycloakUserInfo) userObject;
-        for (String role : userInfo.getRoles()) {
-            findOrCreateGroup(role, userInfo.getUserName());
-        }
+            // Remember that username is email by default
+            DocumentModel userDoc = findUser(userInfo);
+            if (userDoc == null) {
+                userDoc = createUser(userInfo);
+            }
 
-        // Remember that username is email by default
-        DocumentModel userDoc = findUser(userInfo);
-        if (userDoc == null) {
-            userDoc = createUser(userInfo);
-        }
+            updateUser(userDoc, userInfo);
 
-        userDoc = updateUser(userDoc, userInfo);
-
-        String userId = (String) userDoc.getPropertyValue(userManager.getUserIdField());
-        return userManager.getPrincipal(userId);
+            String userId = (String) userDoc.getPropertyValue(userManager.getUserIdField());
+            return userManager.getPrincipal(userId);
+        });
     }
 
     @Override
@@ -91,7 +92,7 @@ public class KeycloakUserMapper implements UserMapper {
             groupDoc.setProperty(groupSchemaName, "groupname", role);
             groupDoc.setProperty(groupSchemaName, "grouplabel", role + " group");
             groupDoc.setProperty(groupSchemaName, "description",
-                    "Group automatically created by Keycloak based on user role [" + role + "]");
+                                 "Group automatically created by Keycloak based on user role [" + role + "]");
             groupDoc = userManager.createGroup(groupDoc);
         }
         List<String> users = userManager.getUsersInGroupAndSubGroups(role);
@@ -126,21 +127,19 @@ public class KeycloakUserMapper implements UserMapper {
     }
 
     private DocumentModel createUser(KeycloakUserInfo userInfo) {
-        DocumentModel userDoc;
         try {
-            userDoc = userManager.getBareUserModel();
+            DocumentModel userDoc = userManager.getBareUserModel();
             userDoc.setPropertyValue(userManager.getUserIdField(), userInfo.getUserName());
             userDoc.setPropertyValue(userManager.getUserEmailField(), userInfo.getUserName());
-            userManager.createUser(userDoc);
+            return userManager.createUser(userDoc);
         } catch (NuxeoException e) {
             String message = "Error while creating user [" + userInfo.getUserName() + "] in UserManager";
             log.error(message, e);
             throw new RuntimeException(message);
         }
-        return userDoc;
     }
 
-    private DocumentModel updateUser(DocumentModel userDoc, KeycloakUserInfo userInfo) {
+    private void updateUser(DocumentModel userDoc, KeycloakUserInfo userInfo) {
         userDoc.setPropertyValue(userManager.getUserIdField(), userInfo.getUserName());
         userDoc.setPropertyValue(userManager.getUserEmailField(), userInfo.getUserName());
         userDoc.setProperty(userSchemaName, "firstName", userInfo.getFirstName());
@@ -148,7 +147,6 @@ public class KeycloakUserMapper implements UserMapper {
         userDoc.setProperty(userSchemaName, "password", userInfo.getPassword());
         userDoc.setProperty(userSchemaName, "company", userInfo.getCompany());
         userManager.updateUser(userDoc);
-        return userDoc;
     }
 
     @Override

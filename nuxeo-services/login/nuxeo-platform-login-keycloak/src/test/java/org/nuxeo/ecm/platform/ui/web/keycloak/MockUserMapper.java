@@ -33,7 +33,7 @@ public class MockUserMapper implements UserMapper {
 
     @Override
     public NuxeoPrincipal getOrCreateAndUpdateNuxeoPrincipal(Object userObject, boolean createIfNeeded, boolean update,
-            Map<String, Serializable> params) {
+                                                             Map<String, Serializable> params) {
         return null;
     }
 

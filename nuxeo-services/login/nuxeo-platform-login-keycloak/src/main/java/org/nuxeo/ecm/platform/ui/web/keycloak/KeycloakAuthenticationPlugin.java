@@ -34,7 +34,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import org.keycloak.adapters.AdapterDeploymentContext;
-import org.keycloak.adapters.AuthOutcome;
+import org.keycloak.adapters.spi.AuthOutcome;
 import org.keycloak.adapters.KeycloakDeployment;
 import org.keycloak.representations.AccessToken;
 import org.nuxeo.ecm.platform.api.login.UserIdentificationInfo;
@@ -107,7 +107,7 @@ public class KeycloakAuthenticationPlugin implements NuxeoAuthenticationPlugin,
 
     @Override
     public UserIdentificationInfo handleRetrieveIdentity(HttpServletRequest httpRequest,
-            HttpServletResponse httpResponse) {
+                                                         HttpServletResponse httpResponse) {
         LOGGER.debug("KEYCLOAK will handle identification");
 
         KeycloakRequestAuthenticator authenticator = keycloakAuthenticatorProvider.provide(httpRequest, httpResponse);
@@ -155,13 +155,13 @@ public class KeycloakAuthenticationPlugin implements NuxeoAuthenticationPlugin,
      */
     private KeycloakUserInfo getKeycloakUserInfo(AccessToken token) {
         return aKeycloakUserInfo()
-        // Required
-        .withUserName(token.getEmail())
-        // Optional
-        .withFirstName(token.getGivenName()).withLastName(token.getFamilyName()).withCompany(
-                token.getPreferredUsername()).withAuthPluginName("KEYCLOAK_AUTH")
-        // The password is randomly generated has we won't use it
-        .withPassword(UUID.randomUUID().toString()).build();
+                // Required
+                .withUserName(token.getEmail())
+                // Optional
+                .withFirstName(token.getGivenName()).withLastName(token.getFamilyName()).withCompany(
+                        token.getPreferredUsername()).withAuthPluginName("KEYCLOAK_AUTH")
+                // The password is randomly generated has we won't use it
+                .withPassword(UUID.randomUUID().toString()).build();
     }
 
     /**
@@ -173,7 +173,12 @@ public class KeycloakAuthenticationPlugin implements NuxeoAuthenticationPlugin,
      */
     private Set<String> getRoles(AccessToken token, String keycloakNuxeoApp) {
         Set<String> allRoles = new HashSet<>();
-        allRoles.addAll(token.getRealmAccess().getRoles());
+
+        AccessToken.Access realmAccess = token.getRealmAccess();
+        if (realmAccess != null && realmAccess.getRoles() != null) {
+            allRoles.addAll(realmAccess.getRoles());
+        }
+
         AccessToken.Access nuxeoResource = token.getResourceAccess(keycloakNuxeoApp);
         if (nuxeoResource != null) {
             Set<String> nuxeoRoles = nuxeoResource.getRoles();

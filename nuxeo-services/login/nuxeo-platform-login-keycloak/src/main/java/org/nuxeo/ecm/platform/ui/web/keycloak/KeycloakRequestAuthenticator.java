@@ -31,8 +31,8 @@ import org.apache.catalina.realm.GenericPrincipal;
 import org.apache.tomcat.util.descriptor.web.LoginConfig;
 import org.keycloak.KeycloakPrincipal;
 import org.keycloak.adapters.AdapterTokenStore;
-import org.keycloak.adapters.AuthChallenge;
-import org.keycloak.adapters.AuthOutcome;
+import org.keycloak.adapters.spi.AuthChallenge;
+import org.keycloak.adapters.spi.AuthOutcome;
 import org.keycloak.adapters.KeycloakDeployment;
 import org.keycloak.adapters.OAuthRequestAuthenticator;
 import org.keycloak.adapters.RefreshableKeycloakSecurityContext;
@@ -67,7 +67,7 @@ public class KeycloakRequestAuthenticator extends RequestAuthenticator {
     protected LoginConfig loginConfig;
 
     public KeycloakRequestAuthenticator(Request request, HttpServletResponse response, CatalinaHttpFacade facade,
-            KeycloakDeployment deployment) {
+                                        KeycloakDeployment deployment) {
         super(facade, deployment);
         this.request = request;
         this.response = response;
@@ -86,7 +86,7 @@ public class KeycloakRequestAuthenticator extends RequestAuthenticator {
             if (loginConfig == null) {
                 loginConfig = request.getContext().getLoginConfig();
             }
-            if (challenge.errorPage()) {
+            if (challenge.getResponseCode() >= 400) {
                 if (forwardToErrorPageInternal(request, response, loginConfig)) {
                     return AuthOutcome.FAILED;
                 }
@@ -106,7 +106,7 @@ public class KeycloakRequestAuthenticator extends RequestAuthenticator {
         }
         try {
             Method method = FormAuthenticator.class.getDeclaredMethod("forwardToErrorPage", Request.class,
-                    HttpServletResponse.class, LoginConfig.class);
+                                                                      HttpServletResponse.class, LoginConfig.class);
             method.setAccessible(true);
             method.invoke(this, request, response, config);
         } catch (Exception e) {
@@ -136,7 +136,7 @@ public class KeycloakRequestAuthenticator extends RequestAuthenticator {
 
         if (deployment.getTokenStore() == TokenStore.SESSION) {
             store = new CatalinaSessionTokenStore(request, deployment, userSessionManagement, createPrincipalFactory(),
-                    new KeycloakAuthenticatorValve());
+                                                  new KeycloakAuthenticatorValve());
         } else {
             store = new CatalinaCookieTokenStore(request, facade, deployment, createPrincipalFactory());
         }
@@ -162,7 +162,7 @@ public class KeycloakRequestAuthenticator extends RequestAuthenticator {
     }
 
     @Override
-    protected String getHttpSessionId(boolean create) {
+    protected String changeHttpSessionId(boolean create) {
         HttpSession session = request.getSession(create);
         return session != null ? session.getId() : null;
     }

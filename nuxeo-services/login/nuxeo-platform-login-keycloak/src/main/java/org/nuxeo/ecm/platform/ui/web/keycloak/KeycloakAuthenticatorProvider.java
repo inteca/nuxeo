@@ -46,7 +46,7 @@ public class KeycloakAuthenticatorProvider {
     }
 
     public KeycloakRequestAuthenticator provide(HttpServletRequest httpServletRequest,
-            HttpServletResponse httpServletResponse) {
+                                                HttpServletResponse httpServletResponse) {
         DeploymentResult deploymentResult = new DeploymentResult(httpServletRequest, httpServletResponse).invokeOn(
                 deploymentContext);
 
@@ -90,6 +90,6 @@ public class KeycloakAuthenticatorProvider {
         int serverPort = request.getServerPort();
         String contextPath = request.getContextPath();
         return scheme + "://" + serverName + ":" + serverPort + contextPath + "/"
-                + LoginScreenHelper.getStartupPagePath();
+               + LoginScreenHelper.getStartupPagePath();
     }
 }

@@ -19,17 +19,16 @@
 
 package org.nuxeo.ecm.platform.ui.web.keycloak;
 
+import java.lang.reflect.Field;
+
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
 import org.apache.catalina.connector.Request;
 import org.apache.catalina.connector.RequestFacade;
 import org.keycloak.adapters.AdapterDeploymentContext;
 import org.keycloak.adapters.KeycloakDeployment;
 import org.keycloak.adapters.tomcat.CatalinaHttpFacade;
-
-import javax.servlet.ServletRequest;
-import javax.servlet.ServletRequestWrapper;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import java.lang.reflect.Field;
 
 /**
  *
@@ -70,13 +69,8 @@ public class DeploymentResult {
     public DeploymentResult invokeOn(AdapterDeploymentContext deploymentContext) {
 
         // In Tomcat, a HttpServletRequest and a HttpServletResponse are wrapped in a Facades
-        if (httpServletRequest instanceof RequestFacade) {
-            // Received upon logout.
-            request = unwrapRequest(httpServletRequest);
-        } else {
-            request = unwrapRequest(((ServletRequestWrapper) httpServletRequest).getRequest());
-        }
-        facade = new CatalinaHttpFacade(request, httpServletResponse);
+        request = unwrapRequest((RequestFacade) httpServletRequest);
+        facade = new CatalinaHttpFacade(httpServletResponse, request);
 
         if (keycloakDeployment == null) {
             keycloakDeployment = deploymentContext.resolveDeployment(facade);
@@ -90,20 +84,18 @@ public class DeploymentResult {
     }
 
     /**
-     * Get the wrapper {@link Request} hidden in a {@link ServletRequest} object
+     * Get the wrapper {@link Request} hidden in a {@link RequestFacade} object
      *
-     * @param servletRequest, the main ServletRequest object
-     * @return the wrapper {@link Request} in {@link ServletRequest}
+     * @param requestFacade, the main RequestFacade object
+     * @return the wrapper {@link Request} in {@link RequestFacade}
      */
-    private Request unwrapRequest(final ServletRequest servletRequest) {
+    private Request unwrapRequest(RequestFacade requestFacade) {
         try {
-            final Field f = servletRequest.getClass().getDeclaredField("request");
+            Field f = requestFacade.getClass().getDeclaredField("request");
             f.setAccessible(true); // grant access to (protected) field
-            return (Request) f.get(servletRequest);
-        } catch (final NoSuchFieldException | IllegalAccessException e) {
+            return (Request) f.get(requestFacade);
+        } catch (NoSuchFieldException | IllegalAccessException e) {
             throw new RuntimeException(e);
-        } catch (final Exception e) {
-            throw e;
         }
     }
 }

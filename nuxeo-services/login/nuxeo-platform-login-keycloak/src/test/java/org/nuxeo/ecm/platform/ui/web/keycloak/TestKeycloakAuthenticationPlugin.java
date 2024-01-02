@@ -40,7 +40,7 @@ import org.apache.catalina.core.StandardContext;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.keycloak.adapters.AuthOutcome;
+import org.keycloak.adapters.spi.AuthOutcome;
 import org.keycloak.adapters.KeycloakDeployment;
 import org.keycloak.representations.AccessToken;
 import org.mockito.Matchers;
@@ -50,13 +50,13 @@ import org.nuxeo.ecm.platform.test.PlatformFeature;
 import org.nuxeo.runtime.test.runner.Deploy;
 import org.nuxeo.runtime.test.runner.Features;
 import org.nuxeo.runtime.test.runner.FeaturesRunner;
-import org.nuxeo.runtime.test.runner.LocalDeploy;
 import org.nuxeo.usermapper.test.UserMapperFeature;
 
 @RunWith(FeaturesRunner.class)
 @Features({PlatformFeature.class, UserMapperFeature.class})
-@Deploy({ "org.nuxeo.usermapper", "org.nuxeo.ecm.platform.web.common" })
-@LocalDeploy({ "org.nuxeo.ecm.platform.login.keycloak.test:OSGI-INF/keycloak-descriptor-bundle.xml" })
+@Deploy("org.nuxeo.usermapper")
+@Deploy("org.nuxeo.ecm.platform.web.common")
+@Deploy("org.nuxeo.ecm.platform.login.keycloak.test:OSGI-INF/keycloak-descriptor-bundle.xml")
 public class TestKeycloakAuthenticationPlugin {
 
     private KeycloakRequestAuthenticator authenticatorMock = Mockito.mock(KeycloakRequestAuthenticator.class);
@@ -116,7 +116,7 @@ public class TestKeycloakAuthenticationPlugin {
         keycloakAuthenticationPlugin.setKeycloakAuthenticatorProvider(providerMock);
 
         UserIdentificationInfo identity = keycloakAuthenticationPlugin.handleRetrieveIdentity(requestFacade,
-                responseMock);
+                                                                                              responseMock);
 
         assertNotNull(identity);
         assertEquals("username@example.com", identity.getUserName());
@@ -135,11 +135,11 @@ public class TestKeycloakAuthenticationPlugin {
                 Collections.enumeration(Collections.singletonList(INVALID_BEARER_TOKEN)));
 
         UserIdentificationInfo identity = keycloakAuthenticationPlugin.handleRetrieveIdentity(requestFacade,
-                responseFacade);
+                                                                                              responseFacade);
 
         assertNull(identity);
 
-        Mockito.verify(responseMock).setStatus(401);
+        Mockito.verify(responseMock).sendError(401);
     }
 
     @Test
@@ -152,7 +152,7 @@ public class TestKeycloakAuthenticationPlugin {
 
         // No need to mock, just try with NO bearer token
         UserIdentificationInfo identity = keycloakAuthenticationPlugin.handleRetrieveIdentity(requestFacade,
-                responseFacade);
+                                                                                              responseFacade);
 
         assertNull(identity);
 
@@ -160,8 +160,8 @@ public class TestKeycloakAuthenticationPlugin {
         Mockito.verify(responseMock).setHeader(
                 Matchers.matches("Location"),
                 Matchers.startsWith("https://127.0.0.1:8443/auth/realms/demo/protocol/openid-connect/auth?"
-                        + "response_type=code&" + "client_id=customer-portal&"
-                        + "redirect_uri=https%3A%2F%2Fexample.com%3A443%2Ffoo%2Fpath%2Fto%2Fresource"));
+                                    + "response_type=code&" + "client_id=customer-portal&"
+                                    + "redirect_uri=https%3A%2F%2Fexample.com%3A443%2Ffoo%2Fpath%2Fto%2Fresource"));
     }
 
     @Test
@@ -191,4 +191,31 @@ public class TestKeycloakAuthenticationPlugin {
         return keycloakAuthenticationPlugin;
     }
 
+    @Test
+    public void testKeycloakBearerAuthenticationSucceedingWithNullRealmAcess() throws Exception {
+        KeycloakAuthenticationPlugin keycloakAuthenticationPlugin = new KeycloakAuthenticationPlugin();
+        initPlugin(keycloakAuthenticationPlugin);
+
+        AccessToken accessToken = new AccessToken();
+        accessToken.setEmail("username@example.com");
+        AccessToken.Access realmAccess = new AccessToken.Access();
+        realmAccess.addRole("user");
+        accessToken.setRealmAccess(null);
+        Mockito.when(requestMock.getAttribute(KEYCLOAK_ACCESS_TOKEN)).thenReturn(accessToken);
+        Mockito.when(authenticatorMock.authenticate()).thenReturn(AuthOutcome.AUTHENTICATED);
+
+        Mockito.when(providerMock.provide(any(HttpServletRequest.class), any(HttpServletResponse.class))).thenReturn(
+                authenticatorMock);
+        KeycloakDeployment deployment = new KeycloakDeployment();
+        deployment.setResourceName("test");
+        Mockito.when(providerMock.getResolvedDeployment()).thenReturn(deployment);
+
+        keycloakAuthenticationPlugin.setKeycloakAuthenticatorProvider(providerMock);
+
+        UserIdentificationInfo identity = keycloakAuthenticationPlugin.handleRetrieveIdentity(requestFacade,
+                                                                                              responseMock);
+
+        assertNotNull(identity);
+        assertEquals("username@example.com", identity.getUserName());
+    }
 }
