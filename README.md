@@ -27,7 +27,7 @@ Budować należy z katalogu głównego. Aby zbudować jakiś konkretny moduł, m
 ```
 mvn clean install -DskipTests=true -pl nuxeo-services/login/nuxeo-platform-login-keycloak --also-make
 ```
-Chociaż w praktyce i tak chyba budowany jest cały projekt.
+Dzięki temu buduje "tylko" 163 moduły zamiast 290 :)
 
 Poza typowymi programami potrzebnymi do budowania projektów javowych (Java, Maven, Ant, etc.), do zbudowania tego projektu potrzebne są następujące programy, dostępne z poziomu konsoli:
 - npm (https://www.npmjs.com/)
